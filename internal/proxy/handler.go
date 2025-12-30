@@ -56,18 +56,21 @@ type JSONRPCResponse struct {
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
+		h.logger.Warn("method not allowed", zap.String("method", r.Method))
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
+		h.logger.Error("failed to read body", zap.Error(err))
 		http.Error(w, "failed to read body", http.StatusInternalServerError)
 		return
 	}
 
 	var req JSONRPCRequest
 	if err := json.Unmarshal(body, &req); err != nil {
+		h.logger.Warn("invalid json", zap.Error(err))
 		http.Error(w, "invalid json", http.StatusBadRequest)
 		return
 	}
@@ -89,13 +92,19 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				json.NewEncoder(w).Encode(resp)
 				return
 			}
+			if err != nil {
+				h.logger.Error("failed to get cached result", zap.Error(err))
+			}
 			metrics.CacheMisses.WithLabelValues(req.Method).Inc()
+		} else {
+			h.logger.Error("failed to generate cache key", zap.Error(err))
 		}
 	}
 
 	// Forward to upstream
 	if h.limiter != nil {
 		if err := h.limiter.Wait(r.Context()); err != nil {
+			h.logger.Warn("upstream rate limit exceeded", zap.Error(err))
 			http.Error(w, "upstream rate limit exceeded", http.StatusTooManyRequests)
 			return
 		}
@@ -103,6 +112,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	upstreamReq, err := http.NewRequestWithContext(r.Context(), "POST", h.upstreamURL, bytes.NewReader(body))
 	if err != nil {
+		h.logger.Error("failed to create upstream request", zap.Error(err))
 		http.Error(w, "failed to create upstream request", http.StatusInternalServerError)
 		return
 	}
@@ -110,6 +120,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	upstreamResp, err := h.httpClient.Do(upstreamReq)
 	if err != nil {
+		h.logger.Error("upstream error", zap.Error(err))
 		http.Error(w, "upstream error", http.StatusBadGateway)
 		return
 	}
@@ -117,6 +128,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	respBody, err := io.ReadAll(upstreamResp.Body)
 	if err != nil {
+		h.logger.Error("failed to read upstream response", zap.Error(err))
 		http.Error(w, "failed to read upstream response", http.StatusInternalServerError)
 		return
 	}
@@ -132,7 +144,11 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					if h.cleanupManager != nil {
 						h.cleanupManager.NotifyWrite()
 					}
+				} else {
+					h.logger.Error("failed to set cached result", zap.Error(err))
 				}
+			} else {
+				h.logger.Error("failed to generate cache key for storage", zap.Error(err))
 			}
 		}
 	}
