@@ -55,6 +55,11 @@ func main() {
 				return fmt.Errorf("invalid max_cache_size_bytes: %w", err)
 			}
 
+			logger.Info("Cache configuration",
+				zap.Int64("max_cache_size_bytes", maxCacheSize),
+				zap.Float64("cleanup_slack_ratio", cfg.CleanupSlackRatio),
+			)
+
 			exp := exporter.New(logger, db, 30*time.Second)
 			go exp.Start(ctx)
 

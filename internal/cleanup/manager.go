@@ -80,7 +80,10 @@ func (m *Manager) cleanup() {
 			if err != nil {
 				m.logger.Error("failed to prune cache", zap.Error(err))
 			} else {
-				m.logger.Info("pruned cache", zap.Int64("freed_bytes", freed))
+				m.logger.Info("pruned cache",
+					zap.Int64("freed_bytes", freed),
+					zap.Int64("target_size", targetSize),
+					zap.Int64("current_size", currentSize))
 			}
 		}
 	}
