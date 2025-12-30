@@ -7,6 +7,7 @@ import (
 	"github.com/clems4ever/ethereum-cache/internal/cleanup"
 	"github.com/clems4ever/ethereum-cache/internal/database"
 	"github.com/clems4ever/ethereum-cache/internal/proxy"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/time/rate"
 )
 
@@ -49,10 +50,14 @@ func New(addr string, upstreamURL string, db *database.DB, authToken string, max
 		})
 	}
 
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", promhttp.Handler())
+	mux.Handle("/", finalHandler)
+
 	return &Server{
 		httpServer: &http.Server{
 			Addr:    addr,
-			Handler: finalHandler,
+			Handler: mux,
 		},
 		cleanupManager: cleanupManager,
 	}

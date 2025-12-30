@@ -11,6 +11,7 @@ import (
 
 	"github.com/clems4ever/ethereum-cache/internal/cleanup"
 	"github.com/clems4ever/ethereum-cache/internal/database"
+	"github.com/clems4ever/ethereum-cache/internal/metrics"
 )
 
 type Handler struct {
@@ -68,6 +69,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			cached, err := h.db.GetCachedRPCResult(r.Context(), key)
 			if err == nil && cached != nil {
 				// Cache hit
+				metrics.CacheHits.WithLabelValues(req.Method).Inc()
 				resp := JSONRPCResponse{
 					JSONRPC: "2.0",
 					Result:  cached,
@@ -77,6 +79,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				json.NewEncoder(w).Encode(resp)
 				return
 			}
+			metrics.CacheMisses.WithLabelValues(req.Method).Inc()
 		}
 	}
 
