@@ -36,7 +36,7 @@ func TestProxy(t *testing.T) {
 
 	// 3. Start Proxy Server
 	proxyPort := "8087"
-	srv := server.New(":"+proxyPort, upstream.URL, db, "", 0, 0)
+	srv := server.New(":"+proxyPort, upstream.URL, db, "", 0, 0, 0)
 
 	go func() {
 		if err := srv.Start(); err != nil {
@@ -79,7 +79,7 @@ func TestAuthentication(t *testing.T) {
 	// 3. Start Proxy Server with Auth Token
 	proxyPort := "8082"
 	authToken := "secret-token"
-	srv := server.New(":"+proxyPort, upstream.URL, db, authToken, 0, 0)
+	srv := server.New(":"+proxyPort, upstream.URL, db, authToken, 0, 0, 0)
 
 	go func() {
 		if err := srv.Start(); err != nil {
@@ -125,7 +125,7 @@ func TestEthClient(t *testing.T) {
 
 	// 3. Start Proxy Server
 	proxyPort := "8086"
-	srv := server.New(":"+proxyPort, upstream.URL, db, "", 0, 0)
+	srv := server.New(":"+proxyPort, upstream.URL, db, "", 0, 0, 0)
 
 	go func() {
 		if err := srv.Start(); err != nil {
@@ -175,7 +175,7 @@ func TestEthClientWithAuth(t *testing.T) {
 	// 3. Start Proxy Server with Auth Token
 	proxyPort := "8084"
 	authToken := "secret-token"
-	srv := server.New(":"+proxyPort, upstream.URL, db, authToken, 0, 0)
+	srv := server.New(":"+proxyPort, upstream.URL, db, authToken, 0, 0, 0)
 
 	go func() {
 		if err := srv.Start(); err != nil {

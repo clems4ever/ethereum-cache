@@ -59,7 +59,7 @@ func TestCacheCleanup(t *testing.T) {
 	proxyPort := "8088"
 	maxSize := int64(600)
 	slackRatio := 0.5
-	srv := server.New(":"+proxyPort, upstream.URL, db, "", maxSize, slackRatio)
+	srv := server.New(":"+proxyPort, upstream.URL, db, "", maxSize, slackRatio, 0)
 
 	go func() {
 		if err := srv.Start(); err != nil {

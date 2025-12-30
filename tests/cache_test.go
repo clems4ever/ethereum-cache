@@ -62,7 +62,7 @@ func TestCaching(t *testing.T) {
 
 	// 3. Start Proxy Server
 	proxyPort := "8085"
-	srv := server.New(":"+proxyPort, upstream.URL, db, "", 0, 0)
+	srv := server.New(":"+proxyPort, upstream.URL, db, "", 0, 0, 0)
 
 	go func() {
 		if err := srv.Start(); err != nil {
@@ -139,7 +139,7 @@ func TestErrorHandling(t *testing.T) {
 
 	// 3. Start Proxy Server
 	proxyPort := "8086"
-	srv := server.New(":"+proxyPort, upstream.URL, db, "", 0, 0)
+	srv := server.New(":"+proxyPort, upstream.URL, db, "", 0, 0, 0)
 
 	go func() {
 		if err := srv.Start(); err != nil {
@@ -194,7 +194,7 @@ func TestNoCachingForLatestBlock(t *testing.T) {
 
 	// 3. Start Proxy Server
 	proxyPort := "8087"
-	srv := server.New(":"+proxyPort, upstream.URL, db, "", 0, 0)
+	srv := server.New(":"+proxyPort, upstream.URL, db, "", 0, 0, 0)
 
 	go func() {
 		if err := srv.Start(); err != nil {

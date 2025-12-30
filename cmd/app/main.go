@@ -47,7 +47,7 @@ func main() {
 			}
 			defer db.Close()
 
-			srv := server.New(":"+cfg.Port, cfg.UpstreamURL, db, cfg.AuthToken, cfg.MaxCacheSizeBytes, cfg.CleanupSlackRatio)
+			srv := server.New(":"+cfg.Port, cfg.UpstreamURL, db, cfg.AuthToken, cfg.MaxCacheSizeBytes, cfg.CleanupSlackRatio, cfg.RateLimit)
 
 			go func() {
 				log.Printf("Starting server on :%s", cfg.Port)
