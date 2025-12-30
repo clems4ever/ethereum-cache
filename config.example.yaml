@@ -4,3 +4,8 @@ database_dsn: "postgres://user:pass@localhost:5432/dbname"
 auth_token: "your-secret-token"
 max_cache_size_bytes: 100
 cleanup_slack_ratio: 0.2
+
+# The number of queries per second that the proxy can send to the upstream
+# server. Note that this does not apply to the endpoint itself. Meaning that
+# request serving from the cache can go above this threshold.
+rate_limit: 5
