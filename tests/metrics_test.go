@@ -108,3 +108,52 @@ func TestPrometheusMetrics(t *testing.T) {
 	finalHits := getMetric("ethereum_cache_hits_total", method)
 	require.Equal(t, currentHits+1, finalHits, "Hit count should increment")
 }
+
+func TestPrometheusMetricsAuth(t *testing.T) {
+	// 1. Setup Test Database
+	tdb := testdb.NewDatabase(t)
+	db, err := database.NewDB(context.Background(), tdb.ConnString())
+	require.NoError(t, err)
+	defer db.Close()
+
+	// 2. Setup Mock Upstream
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer upstream.Close()
+
+	// 3. Start Proxy Server with Auth
+	proxyPort := "8091"
+	authToken := "secret-metrics-token"
+	srv := server.New(zap.NewNop(), ":"+proxyPort, upstream.URL, db, authToken, 0, 0, 0)
+
+	go func() {
+		if err := srv.Start(); err != nil {
+			t.Logf("server error: %v", err)
+		}
+	}()
+	defer srv.Shutdown(context.Background())
+	time.Sleep(100 * time.Millisecond)
+
+	// 4. Request without token -> 401
+	resp, err := http.Get("http://localhost:" + proxyPort + "/metrics")
+	require.NoError(t, err)
+	require.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+	resp.Body.Close()
+
+	// 5. Request with wrong token -> 401
+	req, _ := http.NewRequest("GET", "http://localhost:"+proxyPort+"/metrics", nil)
+	req.Header.Set("Authorization", "Bearer wrong-token")
+	resp, err = http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+	resp.Body.Close()
+
+	// 6. Request with correct token -> 200
+	req, _ = http.NewRequest("GET", "http://localhost:"+proxyPort+"/metrics", nil)
+	req.Header.Set("Authorization", "Bearer "+authToken)
+	resp, err = http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	resp.Body.Close()
+}

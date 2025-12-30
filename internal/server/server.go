@@ -7,6 +7,7 @@ import (
 	"github.com/clems4ever/ethereum-cache/internal/cleanup"
 	"github.com/clems4ever/ethereum-cache/internal/database"
 	"github.com/clems4ever/ethereum-cache/internal/proxy"
+	"github.com/go-chi/chi/v5"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 )
@@ -25,29 +26,36 @@ func New(logger *zap.Logger, addr string, upstreamURL string, db *database.DB, a
 
 	handler := proxy.NewHandler(logger, upstreamURL, db, cleanupManager, rateLimit)
 
-	var finalHandler http.Handler = handler
+	r := chi.NewRouter()
 
-	if authToken != "" {
-		next := finalHandler
-		finalHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			authHeader := r.Header.Get("Authorization")
-			if authHeader != "Bearer "+authToken {
-				http.Error(w, "Unauthorized", http.StatusUnauthorized)
-				return
-			}
-			next.ServeHTTP(w, r)
-		})
-	}
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
+	})
 
-	mux := http.NewServeMux()
-	mux.Handle("/metrics", promhttp.Handler())
-	mux.Handle("/", finalHandler)
+	r.Group(func(r chi.Router) {
+		if authToken != "" {
+			r.Use(func(next http.Handler) http.Handler {
+				return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					authHeader := r.Header.Get("Authorization")
+					if authHeader != "Bearer "+authToken {
+						http.Error(w, "Unauthorized", http.StatusUnauthorized)
+						return
+					}
+					next.ServeHTTP(w, r)
+				})
+			})
+		}
+
+		r.Handle("/metrics", promhttp.Handler())
+		r.Mount("/", handler)
+	})
 
 	return &Server{
 		logger: logger,
 		httpServer: &http.Server{
 			Addr:    addr,
-			Handler: mux,
+			Handler: r,
 		},
 		cleanupManager: cleanupManager,
 	}
