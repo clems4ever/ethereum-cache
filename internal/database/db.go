@@ -101,6 +101,17 @@ func (s *DB) GetCacheSize(ctx context.Context) (int64, error) {
 	return size, nil
 }
 
+func (s *DB) GetCacheItemCount(ctx context.Context) (int64, error) {
+	var count int64
+	err := s.pool.QueryRow(ctx, `
+		SELECT COUNT(*) FROM rpc_cache
+	`).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get cache item count: %w", err)
+	}
+	return count, nil
+}
+
 func (s *DB) PruneCache(ctx context.Context, bytesToFree int64) (int64, error) {
 	var freedBytes int64
 	err := s.pool.QueryRow(ctx, `

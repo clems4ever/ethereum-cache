@@ -11,6 +11,7 @@ import (
 
 	"github.com/clems4ever/ethereum-cache/internal/config"
 	"github.com/clems4ever/ethereum-cache/internal/database"
+	"github.com/clems4ever/ethereum-cache/internal/exporter"
 	"github.com/clems4ever/ethereum-cache/internal/server"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -51,6 +52,9 @@ func main() {
 			if err != nil {
 				return fmt.Errorf("invalid max_cache_size_bytes: %w", err)
 			}
+
+			exp := exporter.New(db, 30*time.Second)
+			go exp.Start(ctx)
 
 			srv := server.New(":"+cfg.Port, cfg.UpstreamURL, db, cfg.AuthToken, maxCacheSize, cfg.CleanupSlackRatio, cfg.RateLimit)
 
