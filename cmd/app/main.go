@@ -47,7 +47,12 @@ func main() {
 			}
 			defer db.Close()
 
-			srv := server.New(":"+cfg.Port, cfg.UpstreamURL, db, cfg.AuthToken, cfg.MaxCacheSizeBytes, cfg.CleanupSlackRatio, cfg.RateLimit)
+			maxCacheSize, err := cfg.GetMaxCacheSizeBytes()
+			if err != nil {
+				return fmt.Errorf("invalid max_cache_size_bytes: %w", err)
+			}
+
+			srv := server.New(":"+cfg.Port, cfg.UpstreamURL, db, cfg.AuthToken, maxCacheSize, cfg.CleanupSlackRatio, cfg.RateLimit)
 
 			go func() {
 				log.Printf("Starting server on :%s", cfg.Port)
