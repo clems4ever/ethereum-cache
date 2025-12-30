@@ -26,6 +26,15 @@ func main() {
 		Use:   "ethereum-cache",
 		Short: "Ethereum RPC Cache Proxy",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// Bind environment variables to config keys
+			_ = viper.BindEnv("port")
+			_ = viper.BindEnv("upstream_url")
+			_ = viper.BindEnv("database_dsn")
+			_ = viper.BindEnv("auth_token")
+			_ = viper.BindEnv("max_cache_size_bytes")
+			_ = viper.BindEnv("cleanup_slack_ratio")
+			_ = viper.BindEnv("rate_limit")
+
 			var cfg config.Config
 			if err := viper.Unmarshal(&cfg); err != nil {
 				return fmt.Errorf("unable to decode into struct: %w", err)
