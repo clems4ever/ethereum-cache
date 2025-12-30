@@ -20,6 +20,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 )
 
 func TestCaching(t *testing.T) {
@@ -61,8 +62,8 @@ func TestCaching(t *testing.T) {
 	defer upstream.Close()
 
 	// 3. Start Proxy Server
-	proxyPort := "8085"
-	srv := server.New(":"+proxyPort, upstream.URL, db, "", 0, 0, 0)
+	proxyPort := "8088"
+	srv := server.New(zap.NewNop(), ":"+proxyPort, upstream.URL, db, "", 0, 0, 0)
 
 	go func() {
 		if err := srv.Start(); err != nil {
@@ -139,7 +140,7 @@ func TestErrorHandling(t *testing.T) {
 
 	// 3. Start Proxy Server
 	proxyPort := "8086"
-	srv := server.New(":"+proxyPort, upstream.URL, db, "", 0, 0, 0)
+	srv := server.New(zap.NewNop(), ":"+proxyPort, upstream.URL, db, "", 0, 0, 0)
 
 	go func() {
 		if err := srv.Start(); err != nil {
@@ -194,7 +195,7 @@ func TestNoCachingForLatestBlock(t *testing.T) {
 
 	// 3. Start Proxy Server
 	proxyPort := "8087"
-	srv := server.New(":"+proxyPort, upstream.URL, db, "", 0, 0, 0)
+	srv := server.New(zap.NewNop(), ":"+proxyPort, upstream.URL, db, "", 0, 0, 0)
 
 	go func() {
 		if err := srv.Start(); err != nil {

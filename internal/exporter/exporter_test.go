@@ -10,6 +10,7 @@ import (
 	"github.com/clems4ever/ethereum-cache/testdb"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 )
 
 func TestExporter(t *testing.T) {
@@ -32,7 +33,7 @@ func TestExporter(t *testing.T) {
 	// Total expected count: 2
 
 	// 3. Start Exporter
-	exp := exporter.New(db, 100*time.Millisecond)
+	exp := exporter.New(zap.NewNop(), db, 100*time.Millisecond)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

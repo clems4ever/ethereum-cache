@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -15,10 +14,13 @@ import (
 	"github.com/clems4ever/ethereum-cache/internal/server"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 func main() {
 	var cfgFile string
+	logger, _ := zap.NewProduction()
+	defer logger.Sync()
 
 	var rootCmd = &cobra.Command{
 		Use:   "ethereum-cache",
@@ -53,15 +55,15 @@ func main() {
 				return fmt.Errorf("invalid max_cache_size_bytes: %w", err)
 			}
 
-			exp := exporter.New(db, 30*time.Second)
+			exp := exporter.New(logger, db, 30*time.Second)
 			go exp.Start(ctx)
 
-			srv := server.New(":"+cfg.Port, cfg.UpstreamURL, db, cfg.AuthToken, maxCacheSize, cfg.CleanupSlackRatio, cfg.RateLimit)
+			srv := server.New(logger, ":"+cfg.Port, cfg.UpstreamURL, db, cfg.AuthToken, maxCacheSize, cfg.CleanupSlackRatio, cfg.RateLimit)
 
 			go func() {
-				log.Printf("Starting server on :%s", cfg.Port)
+				logger.Info("Starting server", zap.String("port", cfg.Port))
 				if err := srv.Start(); err != nil {
-					log.Fatalf("server error: %v", err)
+					logger.Fatal("server error", zap.Error(err))
 				}
 			}()
 
@@ -69,7 +71,7 @@ func main() {
 			signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 			<-quit
 
-			log.Println("Shutting down server...")
+			logger.Info("Shutting down server...")
 			shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer shutdownCancel()
 
@@ -77,7 +79,7 @@ func main() {
 				return fmt.Errorf("server forced to shutdown: %w", err)
 			}
 
-			log.Println("Server exited")
+			logger.Info("Server exited")
 			return nil
 		},
 	}
@@ -90,7 +92,7 @@ func main() {
 		} else {
 			home, err := os.UserHomeDir()
 			if err != nil {
-				log.Fatal(err)
+				logger.Fatal("failed to get user home dir", zap.Error(err))
 			}
 			viper.AddConfigPath(home)
 			viper.SetConfigType("yaml")
@@ -100,7 +102,7 @@ func main() {
 		viper.AutomaticEnv()
 
 		if err := viper.ReadInConfig(); err == nil {
-			log.Println("Using config file:", viper.ConfigFileUsed())
+			logger.Info("Using config file", zap.String("file", viper.ConfigFileUsed()))
 		}
 	})
 

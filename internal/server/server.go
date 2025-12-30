@@ -8,20 +8,22 @@ import (
 	"github.com/clems4ever/ethereum-cache/internal/database"
 	"github.com/clems4ever/ethereum-cache/internal/proxy"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.uber.org/zap"
 )
 
 type Server struct {
+	logger         *zap.Logger
 	httpServer     *http.Server
 	cleanupManager *cleanup.Manager
 }
 
-func New(addr string, upstreamURL string, db *database.DB, authToken string, maxSize int64, slackRatio float64, rateLimit float64) *Server {
+func New(logger *zap.Logger, addr string, upstreamURL string, db *database.DB, authToken string, maxSize int64, slackRatio float64, rateLimit float64) *Server {
 	var cleanupManager *cleanup.Manager
 	if maxSize > 0 {
-		cleanupManager = cleanup.NewManager(db, maxSize, slackRatio)
+		cleanupManager = cleanup.NewManager(logger, db, maxSize, slackRatio)
 	}
 
-	handler := proxy.NewHandler(upstreamURL, db, cleanupManager, rateLimit)
+	handler := proxy.NewHandler(logger, upstreamURL, db, cleanupManager, rateLimit)
 
 	var finalHandler http.Handler = handler
 
@@ -42,6 +44,7 @@ func New(addr string, upstreamURL string, db *database.DB, authToken string, max
 	mux.Handle("/", finalHandler)
 
 	return &Server{
+		logger: logger,
 		httpServer: &http.Server{
 			Addr:    addr,
 			Handler: mux,

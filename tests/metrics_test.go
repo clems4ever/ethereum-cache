@@ -18,6 +18,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 )
 
 func TestPrometheusMetrics(t *testing.T) {
@@ -37,7 +38,7 @@ func TestPrometheusMetrics(t *testing.T) {
 
 	// 3. Start Proxy Server
 	proxyPort := "8090"
-	srv := server.New(":"+proxyPort, upstream.URL, db, "", 0, 0, 0)
+	srv := server.New(zap.NewNop(), ":"+proxyPort, upstream.URL, db, "", 0, 0, 0)
 
 	go func() {
 		if err := srv.Start(); err != nil {

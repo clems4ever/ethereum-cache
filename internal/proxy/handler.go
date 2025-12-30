@@ -12,10 +12,12 @@ import (
 	"github.com/clems4ever/ethereum-cache/internal/cleanup"
 	"github.com/clems4ever/ethereum-cache/internal/database"
 	"github.com/clems4ever/ethereum-cache/internal/metrics"
+	"go.uber.org/zap"
 	"golang.org/x/time/rate"
 )
 
 type Handler struct {
+	logger         *zap.Logger
 	upstreamURL    string
 	db             *database.DB
 	httpClient     *http.Client
@@ -23,12 +25,13 @@ type Handler struct {
 	limiter        *rate.Limiter
 }
 
-func NewHandler(upstreamURL string, db *database.DB, cleanupManager *cleanup.Manager, rateLimit float64) *Handler {
+func NewHandler(logger *zap.Logger, upstreamURL string, db *database.DB, cleanupManager *cleanup.Manager, rateLimit float64) *Handler {
 	var limiter *rate.Limiter
 	if rateLimit > 0 {
 		limiter = rate.NewLimiter(rate.Limit(rateLimit), int(rateLimit)+1)
 	}
 	return &Handler{
+		logger:         logger,
 		upstreamURL:    upstreamURL,
 		db:             db,
 		httpClient:     &http.Client{},

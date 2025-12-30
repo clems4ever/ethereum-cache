@@ -12,6 +12,7 @@ import (
 	"github.com/clems4ever/ethereum-cache/internal/server"
 	"github.com/clems4ever/ethereum-cache/testdb"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 )
 
 func TestRateLimiting(t *testing.T) {
@@ -32,7 +33,7 @@ func TestRateLimiting(t *testing.T) {
 	// Rate Limit = 1 request per second. Burst = 2.
 	proxyPort := "8089"
 	rateLimit := 1.0
-	srv := server.New(":"+proxyPort, upstream.URL, db, "", 0, 0, rateLimit)
+	srv := server.New(zap.NewNop(), ":"+proxyPort, upstream.URL, db, "", 0, 0, rateLimit)
 
 	go func() {
 		if err := srv.Start(); err != nil {
