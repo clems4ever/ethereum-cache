@@ -12,6 +12,7 @@ import (
 	"github.com/clems4ever/ethereum-cache/internal/cleanup"
 	"github.com/clems4ever/ethereum-cache/internal/database"
 	"github.com/clems4ever/ethereum-cache/internal/metrics"
+	"golang.org/x/time/rate"
 )
 
 type Handler struct {
@@ -19,14 +20,20 @@ type Handler struct {
 	db             *database.DB
 	httpClient     *http.Client
 	cleanupManager *cleanup.Manager
+	limiter        *rate.Limiter
 }
 
-func NewHandler(upstreamURL string, db *database.DB, cleanupManager *cleanup.Manager) *Handler {
+func NewHandler(upstreamURL string, db *database.DB, cleanupManager *cleanup.Manager, rateLimit float64) *Handler {
+	var limiter *rate.Limiter
+	if rateLimit > 0 {
+		limiter = rate.NewLimiter(rate.Limit(rateLimit), int(rateLimit)+1)
+	}
 	return &Handler{
 		upstreamURL:    upstreamURL,
 		db:             db,
 		httpClient:     &http.Client{},
 		cleanupManager: cleanupManager,
+		limiter:        limiter,
 	}
 }
 
@@ -84,7 +91,21 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Forward to upstream
-	upstreamResp, err := h.httpClient.Post(h.upstreamURL, "application/json", bytes.NewReader(body))
+	if h.limiter != nil {
+		if err := h.limiter.Wait(r.Context()); err != nil {
+			http.Error(w, "upstream rate limit exceeded", http.StatusTooManyRequests)
+			return
+		}
+	}
+
+	upstreamReq, err := http.NewRequestWithContext(r.Context(), "POST", h.upstreamURL, bytes.NewReader(body))
+	if err != nil {
+		http.Error(w, "failed to create upstream request", http.StatusInternalServerError)
+		return
+	}
+	upstreamReq.Header.Set("Content-Type", "application/json")
+
+	upstreamResp, err := h.httpClient.Do(upstreamReq)
 	if err != nil {
 		http.Error(w, "upstream error", http.StatusBadGateway)
 		return

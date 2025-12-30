@@ -8,7 +8,6 @@ import (
 	"github.com/clems4ever/ethereum-cache/internal/database"
 	"github.com/clems4ever/ethereum-cache/internal/proxy"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"golang.org/x/time/rate"
 )
 
 type Server struct {
@@ -22,7 +21,7 @@ func New(addr string, upstreamURL string, db *database.DB, authToken string, max
 		cleanupManager = cleanup.NewManager(db, maxSize, slackRatio)
 	}
 
-	handler := proxy.NewHandler(upstreamURL, db, cleanupManager)
+	handler := proxy.NewHandler(upstreamURL, db, cleanupManager, rateLimit)
 
 	var finalHandler http.Handler = handler
 
@@ -32,18 +31,6 @@ func New(addr string, upstreamURL string, db *database.DB, authToken string, max
 			authHeader := r.Header.Get("Authorization")
 			if authHeader != "Bearer "+authToken {
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
-				return
-			}
-			next.ServeHTTP(w, r)
-		})
-	}
-
-	if rateLimit > 0 {
-		limiter := rate.NewLimiter(rate.Limit(rateLimit), int(rateLimit)+1)
-		next := finalHandler
-		finalHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if !limiter.Allow() {
-				http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
 				return
 			}
 			next.ServeHTTP(w, r)
