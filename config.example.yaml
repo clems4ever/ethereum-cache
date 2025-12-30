@@ -1,0 +1,6 @@
+port: "8080"
+upstream_url: "https://mainnet.infura.io/v3/YOUR_KEY"
+database_dsn: "postgres://user:pass@localhost:5432/dbname"
+auth_token: "your-secret-token"
+max_cache_size_bytes: 100
+cleanup_slack_ratio: 0.2

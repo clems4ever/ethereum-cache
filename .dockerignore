@@ -1,0 +1,25 @@
+# Version control
+.git
+.gitignore
+
+# Build artifacts
+bin/
+*.exe
+*.test
+*.out
+
+# Test related
+tests/
+testdb/
+.mockery.yaml
+
+# Docker related
+Dockerfile
+.dockerignore
+
+# Documentation
+*.md
+
+# Config
+config.yaml
+.config.yaml
